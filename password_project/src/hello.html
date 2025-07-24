@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecurePass - Password Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .strength-0 {
+      background-color: #ef4444; /* red */
+    }
+    .strength-1 {
+      background-color: #f97316; /* orange */
+    }
+    .strength-2 {
+      background-color: #f59e0b; /* amber */
+    }
+    .strength-3 {
+      background-color: #84cc16; /* lime */
+    }
+    .strength-4 {
+      background-color: #10b981; /* emerald */
+    }
+    .strength-5 {
+      background-color: #22c55e; /* green */
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const PasswordGenerator = () => {
+      const [password, setPassword] = useState('');
+      const [length, setLength] = useState(12);
+      const [options, setOptions] = useState({
+        uppercase: true,
+        lowercase: true,
+        numbers: true,
+        symbols: true,
+      });
+      const [strength, setStrength] = useState(0);
+      const [copied, setCopied] = useState(false);
+      const [isGenerating, setIsGenerating] = useState(false);
+
+      const characterSets = {
+        uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        lowercase: 'abcdefghijklmnopqrstuvwxyz',
+        numbers: '0123456789',
+        symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?',
+      };
+
+      const generatePassword = () => {
+        setIsGenerating(true);
+        let charset = '';
+        let generatedPassword = '';
+        
+        // Build the charset based on selected options
+        for (const [option, isEnabled] of Object.entries(options)) {
+          if (isEnabled) {
+            charset += characterSets[option];
+          }
+        }
+
+        // If no options are selected, use lowercase as default
+        if (charset === '') {
+          charset = characterSets.lowercase;
+          setOptions(prev => ({ ...prev, lowercase: true }));
+        }
+
+        // Generate password
+        for (let i = 0; i < length; i++) {
+          const randomIndex = Math.floor(Math.random() * charset.length);
+          generatedPassword += charset[randomIndex];
+        }
+
+        setPassword(generatedPassword);
+        calculateStrength(generatedPassword);
+        setIsGenerating(false);
+      };
+
+      const calculateStrength = (pass) => {
+        let strengthScore = 0;
+        
+        // Length contributes to strength
+        if (pass.length >= 20) strengthScore += 2;
+        else if (pass.length >= 12) strengthScore += 1;
+
+        // Character set variety contributes to strength
+        const charSetCount = [
+          /[A-Z]/.test(pass),
+          /[a-z]/.test(pass),
+          /[0-9]/.test(pass),
+          /[^A-Za-z0-9]/.test(pass)
+        ].filter(Boolean).length;
+
+        strengthScore += charSetCount;
+        
+        setStrength(Math.min(strengthScore, 5)); // Cap at 5
+      };
+
+      const copyToClipboard = () => {
+        if (!password) return;
+        
+        navigator.clipboard.writeText(password).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      };
+
+      const handleOptionChange = (option) => {
+        setOptions(prev => ({
+          ...prev,
+          [option]: !prev[option]
+        }));
+      };
+
+      useEffect(() => {
+        generatePassword();
+      }, [length, options]);
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl w-full max-w-md p-8">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-800">SecurePass Generator</h1>
+              <p className="text-gray-600">Create strong, random passwords</p>
+            </div>
+            
+            {/* Password Display */}
+            <div className="relative mb-6">
+              <div className="flex items-center border border-gray-300 rounded-lg px-4 py-3 bg-gray-50">
+                <input
+                  type="text"
+                  value={password}
+                  readOnly
+                  className="w-full bg-transparent outline-none text-gray-700 font-mono"
+                />
+                <button
+                  onClick={copyToClipboard}
+                  disabled={!password}
+                  className={`ml-2 p-2 rounded-md ${password ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h4a2 2 0 002-2M8 5a2 2 0 012-2h4a2 2 0 012 2m0 0h2a2 2 0 012 2v6m-7 2l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                </button>
+              </div>
+              {copied && (
+                <div className="absolute right-14 top-1/2 transform -translate-y-1/2 text-sm text-green-600">
+                  Copied!
+                </div>
+              )}
+            </div>
+            
+            {/* Password Strength Indicator */}
+            <div className="mb-6 bg-gray-50 p-4 rounded-xl">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Password Strength</span>
+                <span className="text-sm font-medium">
+                  {strength === 0 ? 'Very Weak' : 
+                   strength === 1 ? 'Weak' :
+                   strength === 2 ? 'Fair' :
+                   strength === 3 ? 'Good' :
+                   strength === 4 ? 'Strong' : 'Very Strong'}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div 
+                    key={i}
+                    className={`h-2 rounded-full flex-1 ${i < strength ? `strength-${strength}` : 'bg-gray-200'}`}
+                  ></div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Password Length Slider */}
+            <div className="mb-6 bg-gray-50 p-4 rounded-xl">
+              <div className="flex justify-between mb-2">
+                <label htmlFor="length" className="text-sm font-medium text-gray-700">Length</label>
+                <span className="text-sm font-medium text-gray-900">{length}</span>
+              </div>
+              <input
+                type="range"
+                id="length"
+                min="4"
+                max="32"
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+            
+            {/* Character Options */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 mb-3">Character Types</p>
+              <div className="space-y-3">
+                {Object.entries(options).map(([option, isEnabled]) => (
+                  <div key={option} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={option}
+                      checked={isEnabled}
+                      onChange={() => handleOptionChange(option)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor={option} className="ml-3 text-sm text-gray-700 capitalize">
+                      {option}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Generate Button */}
+            <button
+              onClick={generatePassword}
+              disabled={isGenerating}
+              className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center ${isGenerating ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'} text-white shadow-md hover:shadow-lg transition-all`}
+            >
+              {isGenerating ? 'Generating...' : 'Generate New Password'}
+              {isGenerating && (
+                <svg className="animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
+            </button>
+            
+            {/* Tips */}
+            <div className="mt-6 text-xs text-gray-500 bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <p className="font-medium mb-1">Password Tips:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Use at least 12 characters</li>
+                <li>Include uppercase, lowercase, numbers, and symbols</li>
+                <li>Avoid common words or patterns</li>
+                <li>Don't reuse passwords across sites</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      return <PasswordGenerator />;
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
