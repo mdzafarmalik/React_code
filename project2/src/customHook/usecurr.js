@@ -1,14 +1,23 @@
-import { useEffect,useEffect } from "react";
-import { useState } from 'react'
+import { useEffect, useState } from 'react';
 
-function usecurr(currency){
-    const [data, setData] = useState({});
-    useEffect(() => {
-        fetch(`https://v6.exchangerate-api.com/v6/adb2a9930a6f56990378dfba/latest/USD ${currency}.json`)
-            .then((res) => res.json())
-            .then((res) => setData(res[currency]))
-           console.log(res[currency])
-    }, [currency]);
-    return data;
+function Usecurr(baseCurrency) {
+  const [data, setData] = useState({});
+
+  useEffect(() => {
+    if (!baseCurrency) return;
+
+    fetch(`https://v6.exchangerate-api.com/v6/adb2a9930a6f56990378dfba/latest/${baseCurrency}`)
+      .then(res => res.json())
+      .then(res => {
+        setData(res.conversion_rates); // ✅ Access the correct field
+        console.log("Fetched exchange rates:", res.conversion_rates);
+      })
+      .catch(err => {
+        console.error("Error fetching currency rates:", err);
+      });
+  }, [baseCurrency]);
+
+  return data;
 }
-export default usecurr; 
+
+export default Usecurr;
